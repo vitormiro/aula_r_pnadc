@@ -1,0 +1,282 @@
+---
+title: "Indicadores de pobreza com a PNAD Contínua."
+author: "Vitor Hugo Miro (UFC)"
+date: "30/04/2021"
+output: 
+    ioslides_presentation:
+        widescreen: true
+        smaller: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+```
+
+## A PNAD Contínua
+
+A Pesquisa Nacional por Amostra de Domicílios Contínua (PNADC) foi implantada em caráter definitivo a partir de janeiro de 2012, e a partir de 2016 passou a substituir a PNAD no levantamento das principais informações socioeconômicas no Brasil.
+
+Sobre a PNDC: [Página da PNAD Contínua no IBGE](https://www.ibge.gov.br/estatisticas/sociais/rendimento-despesa-e-consumo/9171-pesquisa-nacional-por-amostra-de-domicilios-continua-mensal.html?=&t=o-que-e).
+
+
+## R e R Studio
+
+- Sobre o R <https://www.r-project.org/>
+
+    - [Instalação](https://cran-r.c3sl.ufpr.br/)
+    
+    
+- Sobre o RStudio <https://www.rstudio.com/products/rstudio/>
+
+    - [Instalação](https://www.rstudio.com/products/rstudio/download/)
+    
+    - O **RStudio** é um m Ambiente de Desenvolvimento Integrado em R 
+    (IDE - integrated development environment) para uso do R. 
+
+
+## Preparar ambiente
+
+Alguns comandos úteis antes de iniciar um projeto de análise de dados no R.
+
+```{r, echo = TRUE}
+
+# limpar "área de trabalho" do R (memória R)
+rm(list = ls())
+
+# Definir um diretório de trabalho.
+setwd("C:/Users/vitor/Desktop/aula_r_pnadc")
+
+options(scipen = 999) # para evitar notação científica.
+
+```
+
+
+## Pacotes (Libraries)
+
+Para a nossa análise vamos utilizar os seguintes pacotes:
+
+- [PNADcIBGE](https://cran.r-project.org/web/packages/PNADcIBGE/index.html)
+    - O pacote **PNADcIBGE** foi desenvolvido para facilitar o download, 
+    importação e análise dos dados amostrais da PNAD Contínua do IBGE.
+
+- [survey](http://cran.fhcrc.org/web/packages/survey/index.html)
+    - O pacote **survey** permite analisar dados sob amostragem complexa.
+
+- [convey](https://cran.r-project.org/web/packages/convey/index.html)
+
+    - O **convey** é um pacote livre, de código aberto, para uso em ambiente R 
+    que oferece funções para o cálculo de indicadores de pobreza, desigualdade 
+    e bem-estar.
+    
+
+## Carregar pacotes
+
+```{r, echo = TRUE}
+
+library(PNADcIBGE)
+
+library(survey)
+
+```
+
+
+## Escolher variáveis
+
+Ao invés de carregar todos os dados da PNADC, podemos definir um vetor de variáveis
+de interesse.
+
+```{r, echo = TRUE}
+
+# Definir variáveis utilizadas na análise
+variaveis <- c('Ano', 'UF', 'Estrato', 'UPA', 'V1008', 'V1014', 'V1032', 
+               'V1022', 'V2001', 'V2005', 'V2007', 'V2009', 
+               'VD4001', 'VD4002', 'VD4016', 'VD4017', 
+               'VD4019', 'VD4020', 'VD4022', 'VD4048', 'VD5008')
+
+```
+
+
+
+## Pacote ‘PNADcIBGE’ e função 'get_pnadc'
+
+O Pacote PNADcIBGE foi desenvolvido para faciliar o download, importação e análise dos dados da PNADC. Ele permite baixar, rotular, deflacionar e criar objeto de desenho amostral (survey design) para os microdados da PNADC.
+
+A função `get_pnadc` faz o trabalho de download, leitura, rotulação e criação do objeto do plano amostral da pesquisa. Esta função pode ser usada para microdados trimestrais e anuais.
+A função também incorpora argumentos para deflacionar valores monetários e salvar os arquivos da PNADC. 
+
+
+## get_pnadc
+
+```{r, echo = TRUE}
+
+# Carrega dados da PNADC 
+pnadc <- get_pnadc(year = 2019,
+                   vars = variaveis,
+                   interview = 1,
+                   design = TRUE,
+                   labels = TRUE,
+                   deflator = TRUE,
+                   defyear = 2019)
+
+```
+
+## Detalhes da base
+
+A função `str` permite verificar a estrutura de qualquer objeto no R.
+
+```{r, echo = TRUE}
+
+str(pnadc)
+
+```
+
+
+## Detalhes da base
+
+A função `class` permite checar o tipo de objeto no R.
+
+```{r, echo = TRUE}
+
+class(pnadc)
+
+```
+
+## Estatísticas básicas com o 'survey'
+
+Vamos ver aplicações de funções estatísticas do pacote `survey`.
+
+- Totais: `svytotal`
+
+- Médias (e proporções): `svymean`
+
+- Razões:`svyratio`
+
+
+Também podem ser utilizadas funções para estimação de:
+
+- variância (`svyvar`)
+
+- intervalos de confiança (`confint`)
+
+- quantis (`svyquantile`)
+
+- modelos de regressão (`svyglm`)
+
+- [Entre outros](http://faculty.washington.edu/tlumley/old-survey/index.html).
+
+
+## Estatísticas básicas com o 'survey'
+
+Totais (`svytotal`)
+
+```{r, echo = TRUE}
+
+# Totais - svytotal
+popuf <- svytotal(~UF, pnadc, na.rm = TRUE)
+popuf
+
+```
+
+## Estatísticas básicas com o 'survey'
+
+Médias (`svymean`)
+
+```{r, echo = TRUE}
+
+rdpc <- svymean(~VD5008, pnadc, na.rm = TRUE)
+rdpc
+
+```
+
+## Estatísticas básicas com o 'survey'
+
+Proporções - variáveis categóricas (`svymean`)
+
+```{r, echo = TRUE}
+
+psexo <- svymean(~V2007, pnadc, na.rm = TRUE)
+psexo
+
+```
+
+
+## Estatísticas básicas com o 'survey'
+
+Razões entre duas variáveis (`svyratio`)
+
+```{r, echo = TRUE}
+
+txdesocup <- svyratio(~VD4002 == "Pessoas desocupadas",
+                      ~VD4001 == "Pessoas na força de trabalho", 
+                      pnadc, 
+                      na.rm = TRUE)
+txdesocup
+
+
+```
+
+## Estimação condicionada (subset)
+
+```{r, echo = TRUE}
+
+rdpc_ce <- svymean(~VD5008, subset(pnadc, UF == "Ceará"), na.rm = TRUE)
+rdpc_ce
+
+```
+
+## Estimação condicionada (subset)
+
+```{r, echo = TRUE}
+rdpc_ce_rural <- svymean(~VD5008, 
+                         subset(pnadc, UF == "Ceará" & V1022 =="Rural"), 
+                         na.rm = TRUE)
+rdpc_ce_rural
+```
+
+
+## O Pacote Convey
+
+O Pacote `convey` permite estimar diversos indicadores de pobreza e desigualdade de renda para dados provenientes de pesquisas com planos amostrais complexos.
+
+Este pacote segue uma sintaxe bem próxima à sintaxe do `survey`, sendo possível utilizar funções do `survey` em objetos do `convey`.
+
+Para a utilização do pacote `convey` é necessário utilizar a função `convey_prep`,
+que transforma o objeto do plano amostral do `survey` no objeto que o `convey`.
+
+- [Mais sobre o uso do convey](https://guilhermejacob.github.io/context/).
+
+## Carregando o pacote Convey e preparando os dados
+
+```{r, echo = TRUE}
+library(convey)
+
+pnadc <- convey_prep(pnadc)
+class(pnadc)
+```
+
+
+## Indicadores de pobreza com o 'convey'
+
+```{r, echo = TRUE}
+fgt0 <- svyfgt(~VD5008, pnadc, g=0, abs_thresh = 436, na.rm = TRUE)
+fgt0
+
+fgt1 <- svyfgt(~VD5008, pnadc, g=1, abs_thresh = 436, na.rm = TRUE)
+fgt1
+
+fgt2 <- svyfgt(~VD5008, pnadc, g=2, abs_thresh = 436, na.rm = TRUE)
+fgt2
+```
+
+
+## Indicadores de desigualdade com o 'convey'
+
+```{r, echo = TRUE}
+gini <- svygini(~VD5008, pnadc, na.rm = TRUE)
+gini
+
+gini_ce <- svygini(~VD5008, subset(pnadc, UF == "Ceará"), na.rm = TRUE)
+gini_ce
+
+```
+
